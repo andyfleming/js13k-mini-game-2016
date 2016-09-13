@@ -5,6 +5,7 @@ var newGameEl = document.getElementById('new')
 var scoreValueEl = document.getElementById('score-value')
 var score
 var gameActive
+var roundCount
 
 // Shortcuts
 var rand = Math.random
@@ -41,14 +42,15 @@ function drawHero() {
   ctx.fillRect(hero.x, hero.y, hero.w, hero.h);
 }
 
-function createEnemy() {
+function createEnemy(speed) {
   return {
     x: randInt(20, canvas.width - 20),
     y: rand() > 0.5 ? 20 : canvas.height - 40,
     w: 20,
     h: 20,
     color: ['#AA3846','#E88E4F', '#E3A922'][randInt(0,2)],
-    index: enemies.length
+    index: enemies.length,
+    speed: speed
   }
 }
 
@@ -58,15 +60,15 @@ function updateEnemy(enemy) {
   }
 
   if (enemy.x > hero.x) {
-    enemy.x -= 0.75
+    enemy.x -= enemy.speed * 0.75
   } else if (enemy.x < hero.x) {
-    enemy.x += 0.75
+    enemy.x += enemy.speed * 0.75
   }
 
   if (enemy.y > hero.y) {
-    enemy.y -= 1
+    enemy.y -= enemy.speed
   } else if (enemy.y < hero.y) {
-    enemy.y += 1
+    enemy.y += enemy.speed
   }
 
 }
@@ -162,6 +164,7 @@ function checkForProjectileHit(enemy) {
       enemyHit = true
       projectiles[proj.index] = null
       enemies[enemy.index] = null
+      incrementScore()
     }
   })
 }
@@ -184,11 +187,11 @@ function draw() {
     ctx.font = "24px Helvetica";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText('GAME OVER', 32, 32);
+    ctx.fillText('GOOD WORK!', 32, 32);
     ctx.font = "14px Helvetica";
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText('You stopped ' + score + ' glitches', 32, 75);
+    ctx.fillText('You stopped ' + score + ' glitches!', 32, 75);
   }
 
 }
@@ -200,6 +203,7 @@ function incrementScore() {
 
 function startNewGame() {
 
+  roundCount = 0
   enemies = []
   projectiles = []
   gameActive = true
@@ -212,10 +216,6 @@ function startNewGame() {
   // If the time passed is 2 seconds
   // - raise the speed of the enemies
   // - raise the number of enemies to spawn
-
-  enemies.push(createEnemy())
-  enemies.push(createEnemy())
-  enemies.push(createEnemy())
 }
 
 function loop() {
@@ -242,7 +242,39 @@ canvas.addEventListener('click', function(e) {
   if (gameActive) {
     createProjectile(e.offsetX, e.offsetY)
   }
+  e.preventDefault()
 })
+
+setInterval(function() {
+  if (gameActive) {
+    var enemiesToCreate
+    var speed
+
+    if (roundCount > 2) {
+      enemiesToCreate = floor(roundCount / 2)
+    } else {
+      enemiesToCreate = 3
+    }
+
+    if (roundCount > 15) {
+      speed = 2
+    } else if (roundCount > 10) {
+      speed = 1.5
+    } else if (roundCount > 5) {
+      speed = 1
+    } else if (roundCount > 2) {
+      speed = 0.75
+    } else {
+      speed = 0.5
+    }
+
+    for (var i = 0; i < enemiesToCreate; i++) {
+      enemies.push(createEnemy(speed))
+    }
+
+    roundCount++
+  }
+}, 2000)
 
 // Let's play this game!
 var then = Date.now()
