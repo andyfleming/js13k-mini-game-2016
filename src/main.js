@@ -47,11 +47,15 @@ function createEnemy() {
     y: rand() > 0.5 ? 20 : canvas.height - 40,
     w: 20,
     h: 20,
-    color: ['#AA3846','#E88E4F', '#E3A922'][randInt(0,2)]
+    color: ['#AA3846','#E88E4F', '#E3A922'][randInt(0,2)],
+    index: enemies.length
   }
 }
 
 function updateEnemy(enemy) {
+  if (!enemy) {
+    return
+  }
 
   if (enemy.x > hero.x) {
     enemy.x -= 0.75
@@ -68,18 +72,60 @@ function updateEnemy(enemy) {
 }
 
 function drawEnemy(enemy) {
+  if (!enemy) {
+   return
+  }
   ctx.globalAlpha = 0.8
   ctx.fillStyle = enemy.color
   ctx.fillRect(enemy.x, enemy.y, enemy.w, enemy.h)
   ctx.globalAlpha = 1
 }
 
-function updateProjectile(proj) {
+function createProjectile(x, y) {
+  var target = {x: x - 2, y: y - 2}
+  var startX = (canvas.width / 2) - 2
+  var startY = (canvas.height / 2) - 2
+  var dx = startX - target.x
+  var dy = startY - target.y
+  var angle = Math.atan2(dy, dx)
+  var velocity = 2
+  var xVelocity = velocity * Math.cos(angle);
+  var yVelocity = velocity * Math.sin(angle);
+
+  projectiles.push({
+    x: startX,
+    y: startY,
+    w: 4,
+    h: 4,
+    xv: xVelocity,
+    yv: yVelocity,
+    index: projectiles.length
+  })
 
 }
 
-function drawProjectile(proj) {
 
+function updateProjectile(proj) {
+  if (!proj) {
+    return
+  }
+  proj.x -= proj.xv
+  proj.y -= proj.yv
+  if (proj.x < -4 || proj.x > canvas.width) {
+    projectiles[proj.index] = null
+  } else if (proj.y < -4 || proj.y > canvas.height) {
+    projectiles[proj.index] = null
+  }
+}
+
+function drawProjectile(proj) {
+  if (!proj) {
+    return
+  }
+  ctx.globalAlpha = 0.8
+  ctx.fillStyle = '#9999aa'
+  ctx.fillRect(proj.x, proj.y, proj.w, proj.h)
+  ctx.globalAlpha = 1
 }
 
 function update() {
@@ -90,7 +136,7 @@ function update() {
   // If any projectiles are hitting enemies, remove them (and up score
   // If any enemies are hitting the hero, lose
   enemies.forEach(checkForHeroHit)
-
+  enemies.forEach(checkForProjectileHit)
 }
 
 function colliding(rect1, rect2) {
@@ -101,11 +147,23 @@ function colliding(rect1, rect2) {
 }
 
 function checkForHeroHit(enemy) {
-
-  if (colliding(enemy, hero)) {
+  if (enemy && colliding(enemy, hero)) {
     lose()
   }
+}
 
+function checkForProjectileHit(enemy) {
+  if (!enemy) {
+    return
+  }
+  var enemyHit = false
+  projectiles.forEach(function(proj) {
+    if (proj && !enemyHit && colliding(enemy, proj)) {
+      enemyHit = true
+      projectiles[proj.index] = null
+      enemies[enemy.index] = null
+    }
+  })
 }
 
 function draw() {
@@ -147,8 +205,8 @@ function startNewGame() {
   gameActive = true
   score = 0
   scoreValueEl.innerText = '0'
-  hero.x = canvas.width / 2
-  hero.y = canvas.height / 2
+  hero.x = (canvas.width / 2) - 10
+  hero.y = (canvas.height / 2) - 10
 
   // On reset, set interval
   // If the time passed is 2 seconds
@@ -179,6 +237,12 @@ function lose() {
 
 // Handle the new button click
 newGameEl.addEventListener('click', startNewGame)
+
+canvas.addEventListener('click', function(e) {
+  if (gameActive) {
+    createProjectile(e.offsetX, e.offsetY)
+  }
+})
 
 // Let's play this game!
 var then = Date.now()
